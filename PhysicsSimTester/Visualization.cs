@@ -10,15 +10,18 @@ namespace PhysicsSimTester
         /// The window resolution, only one number because the window is always square
         /// </summary>
         public static int Res;
-        public static int ScreenUnit { get => Res / 100; }
+        /// <summary>
+        /// Units used for sizing and positioning of text.
+        /// </summary>
+        public static int TextUnits { get => Res / 100; }
         public static Font font;
 
         // Variables used for the debug interface
         private static float totalEnergy;
-        private const int deltaTimesMax = 64;
-        private static int deltaTimesCurr = 0;
-        private static float deltaTimesSum = 0;
-        private static float[] deltaTimes = new float[deltaTimesMax];
+        private const int maximumStoredDeltaTimes = 64;
+        private static int currentDeltaTimeIndex = 0;
+        private static float sumOfDeltaTimes = 0;
+        private static float[] previousDeltaTimes = new float[maximumStoredDeltaTimes];
 
         /// <summary>
         /// Utility function to convert a Vector from screen space to world space.
@@ -75,18 +78,18 @@ namespace PhysicsSimTester
         }
         // Calculate the average of the last deltaTimesMax delta times.
         private static float ProcessDeltaTime(float dt) {
-            deltaTimesSum -= deltaTimes[deltaTimesCurr];
-            deltaTimesSum += dt;
-            deltaTimes[deltaTimesCurr] = dt;
-            deltaTimesCurr = (deltaTimesCurr + 1) % deltaTimesMax;
-            return deltaTimesSum / deltaTimesMax;
+            sumOfDeltaTimes -= previousDeltaTimes[currentDeltaTimeIndex];
+            sumOfDeltaTimes += dt;
+            previousDeltaTimes[currentDeltaTimeIndex] = dt;
+            currentDeltaTimeIndex = (currentDeltaTimeIndex + 1) % maximumStoredDeltaTimes;
+            return sumOfDeltaTimes / maximumStoredDeltaTimes;
         }
         // Draw a text line
         private static void DrawDebugLine(string line, float x, float y) {
-            Raylib.DrawTextEx(font, line, new System.Numerics.Vector2(x * ScreenUnit, y * ScreenUnit), (int)(2.6 * ScreenUnit), (int)(ScreenUnit / 3), Color.RAYWHITE);
+            Raylib.DrawTextEx(font, line, new System.Numerics.Vector2(x * TextUnits, y * TextUnits), (int)(2.6 * TextUnits), (int)(TextUnits / 3), Color.RAYWHITE);
         }
         private static void DrawDebugLine(string line, float x, float y, Color color) {
-            Raylib.DrawTextEx(font, line, new System.Numerics.Vector2(x * ScreenUnit, y * ScreenUnit), (int)(2.6 * ScreenUnit), (int)(ScreenUnit / 3), color);
+            Raylib.DrawTextEx(font, line, new System.Numerics.Vector2(x * TextUnits, y * TextUnits), (int)(2.6 * TextUnits), (int)(TextUnits / 3), color);
         }
     }
 }

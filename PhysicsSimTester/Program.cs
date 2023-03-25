@@ -1,7 +1,6 @@
 ﻿using Raylib_cs;
 using PhysicsSim;
 using PhysicsSimTester;
-//using System.Numerics;
 
 internal class Program
 {
