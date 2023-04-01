@@ -17,11 +17,27 @@ namespace PhysicsSimTester
         public static Font font;
 
         // Variables used for the debug interface
-        private static float totalEnergy;
-        private const int maximumStoredDeltaTimes = 64;
-        private static int currentDeltaTimeIndex = 0;
-        private static float sumOfDeltaTimes = 0;
-        private static float[] previousDeltaTimes = new float[maximumStoredDeltaTimes];
+        private struct SmoothDebugFloat {
+            private const int cacheMax = 64;
+            private int currentIndex;
+            private float[] cachedValues;
+            private float sum;
+            public float AverageValue { get => sum / cacheMax; }
+
+            public SmoothDebugFloat() {
+                currentIndex = 0;
+                cachedValues = new float[cacheMax];
+                sum = 0;
+            }
+            public void FeedValue(float value) {
+                sum -= cachedValues[currentIndex];
+                sum += value;
+                cachedValues[currentIndex] = value;
+                currentIndex = (currentIndex + 1) % cacheMax;
+            }
+        }
+        private static SmoothDebugFloat totalEnergy;
+        private static SmoothDebugFloat deltaTime;
 
         /// <summary>
         /// Utility function to convert a Vector from screen space to world space.
@@ -40,6 +56,25 @@ namespace PhysicsSimTester
         public static Vector WorldToScreen(this Vector vector) {
             vector = new Vector(vector.X, -vector.Y);
             return (vector + Vector.One) / 2 * Res;
+        }
+
+        /// <summary>
+        /// Initializes the visualization
+        /// </summary>
+        /// <param name="res">Resolution of the window</param>
+        public static void Init(int res) {
+            // Set the resolution
+            Res = res;
+
+            // Initialize Raylib
+            Raylib.InitWindow(Res, Res, "Physics Sim");
+            Raylib.SetTraceLogLevel(TraceLogLevel.LOG_ALL);
+            Raylib.SetTargetFPS(200);
+            // Load a better font
+            font = Raylib.LoadFontEx("times.ttf", 256, null, 1024);
+
+            totalEnergy = new SmoothDebugFloat();
+            deltaTime = new SmoothDebugFloat();
         }
 
         /// <summary>
@@ -66,23 +101,19 @@ namespace PhysicsSimTester
         /// <param name="dt">The delta time.</param>
         /// <param name="objects">All the particles being processed.</param>
         public static void DrawDebugInterface(float dt, params Particle[] objects) {
-            float avg = ProcessDeltaTime(dt);
-            DrawDebugLine($"{objects.Length} objects @ {(1 / avg).ToString("F0")} FPS", 2, 2);
-            DrawDebugLine($"{(dt*1000).ToString("F4")}Δt (in ms)", 2, 4);
-            float energy = 0f;
-            foreach(Particle particle in objects) energy += particle.Energy;
-            DrawDebugLine($"E={energy}", 2, 6);
-            DrawDebugLine($"ΔE={energy-totalEnergy}", 2, 8);
-            totalEnergy = energy;
+            // Sum the energy of every object and feed it to the corresponding smooth value
+            float frameEnergy = 0f;
+            foreach(Particle particle in objects) frameEnergy += particle.Energy;
+            totalEnergy.FeedValue(frameEnergy);
 
-        }
-        // Calculate the average of the last deltaTimesMax delta times.
-        private static float ProcessDeltaTime(float dt) {
-            sumOfDeltaTimes -= previousDeltaTimes[currentDeltaTimeIndex];
-            sumOfDeltaTimes += dt;
-            previousDeltaTimes[currentDeltaTimeIndex] = dt;
-            currentDeltaTimeIndex = (currentDeltaTimeIndex + 1) % maximumStoredDeltaTimes;
-            return sumOfDeltaTimes / maximumStoredDeltaTimes;
+            // Feed the delta time to the corresponding smooth value
+            deltaTime.FeedValue(dt);
+
+            // Write info to the screen
+            DrawDebugLine($"{objects.Length} objects @ {(1 / deltaTime.AverageValue).ToString("F0")} FPS", 2, 2);
+            DrawDebugLine($"{(dt*1000).ToString("F4")}Δt (in ms)", 2, 4);
+            DrawDebugLine($"E={totalEnergy.AverageValue.ToString("F3")}", 2, 6);
+
         }
         // Draw a text line
         private static void DrawDebugLine(string line, float x, float y) {

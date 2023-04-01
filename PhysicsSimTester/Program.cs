@@ -1,19 +1,13 @@
 ﻿using Raylib_cs;
 using PhysicsSim;
 using PhysicsSimTester;
+using System;
 
 internal class Program
 {
     private static void Main(string[] args) {
-        // Set the resolution
-        Visualization.Res = 800;
-
-        // Initialize Raylib
-        Raylib.InitWindow(Visualization.Res, Visualization.Res, "Physics Sim");
-        Raylib.SetTraceLogLevel(TraceLogLevel.LOG_ALL);
-        Raylib.SetTargetFPS(200);
-        // Load a better font
-        Visualization.font = Raylib.LoadFontEx("times.ttf", 256, null, 1024);
+        // Init the visualization
+        Visualization.Init(800);
 
         // Physics variables, eventually will be moved to a physics world class
         bool timeSteps = false;
